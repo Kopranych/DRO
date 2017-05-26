@@ -19,12 +19,12 @@ extern "C" {
 #define PORT_LED PORTA
 #define TRIS_LED TRISA
 #define RA0 0
-#define LED_SYNH 9
-#define LED_LOAD 10
+#define LED_SYNH PORTAbits.RA9
+#define LED_LOAD PORTAbits.RA10
 
 void init_port_led(void);
-void invers_led1(void);
-void invers_led2(void);
+void invers_LED_LOAD(void);
+void invers_LED_SYNH(void);
 void led_off(unsigned int pin);
 void led_on(unsigned int pin);
   

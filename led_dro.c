@@ -1,9 +1,10 @@
+
 #include "led_dro.h"
 
 void init_port_led(void)
 {
-    TRIS_LED &= ~((1<<RA0)|(1<<LED_SYNH)|(1<<LED_LOAD));
-    PORT_LED &= ~((1<<RA0)|(1<<LED_SYNH)|(1<<LED_LOAD));   
+    TRIS_LED &= ~((1<<RA0)|(1<<9)|(1<<10));
+    PORT_LED &= ~((1<<RA0)|(1<<9)|(1<<10));   
 }
 
 void led_off(unsigned int pin)
@@ -16,14 +17,14 @@ void led_on(unsigned int pin)
     PORT_LED |= 1<<pin;
 }
 
-void invers_led1()
+void invers_LED_LOAD(void)
 {
-    PORT_LED ^= 1<<RA0;
+    LED_LOAD = ~LED_LOAD;
 }
 
-void invers_led2()
+void invers_LED_SYNH(void)
 {
-    PORT_LED ^= 1<<RA0;
+    LED_SYNH = ~LED_SYNH;
 }
 
 

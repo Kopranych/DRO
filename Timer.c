@@ -4,26 +4,28 @@
 
 
 
-void init_timer1()
+void init_timer1(void)
 {
     _T1IF = 0;//clear flag interrupt
+ //   _T1IE = 1;//enable interrupt    
     _T1IP = 4;//set prioritet 4
-    _T1IE = 1;//enable interrupt
     PORT_T1 = 0;
     TRIS_T1 = 0xFFFF;//port timer1 as input
-    PR1 = MEASURTI;//period reset TMR1
+    ANSC = 0;//analog/digital pin
+    PR1 = 10000;//period reset TMR1
     TMR1 = 0;//clear counter
     T1CONbits.TCS = 1;//source external clock
-    T1CONbits.TCKPS = 0;//prescaler 1:1
+    T1CONbits.TCKPS = 0b00;//prescaler 1:1
     T1CONbits.TGATE = 0;//Gated Time Accumulation Enable bit
     T1CONbits.TSYNC = 0;//Do not synchronize external clock input
     T1CONbits.TSIDL = 0;//
     T1CONbits.TON = 0;//stop Timer1
+
 }
 
 
 
-void init_timer23()
+void init_timer23(void)
 {
     PORT_T2 = 0;
     TRIS_T2 = 0xFFFF;//port timer2 as input
@@ -49,7 +51,7 @@ void init_timer23()
 void start_timer1_23()
 {
     T1CONbits.TON = 1;//
-    T2CONbits.TON = 1;
+//    T2CONbits.TON = 1;
 }
 
 
