@@ -58,7 +58,7 @@ void delay_ms(unsigned long int ms);
 
 int main(int argc, char** argv) 
 { 
-    CLKDIVbits.CPDIV = 0b00;
+    CLKDIVbits.CPDIV = 0b00;// postscaler PLL
     init_timer1();
     init_timer23();
     spi_init();
@@ -66,7 +66,7 @@ int main(int argc, char** argv)
     unsigned int count = 0, flag = 0;
     start_timer1_23();
     led_on(10);
-    spi_txrx_AD5312(count);
+//    spi_txrx_AD5312(count);
     while(1)
     {
   /*     led_on(LED_SYNH); 
@@ -92,7 +92,7 @@ int main(int argc, char** argv)
            invers_LED_SYNH();
            flag_interrupt = 0;
        }
-*/
+
         if (_T3IF == 1)
         {
  //           _T13F = 0;
@@ -111,8 +111,9 @@ int main(int argc, char** argv)
               count++;
               TMR1 = 0;
               _T3IF = 0;
+             
         }
-
+ */       spi_txrx_AD5312(0);
     }
     return (EXIT_SUCCESS);
 }

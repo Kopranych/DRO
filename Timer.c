@@ -11,14 +11,14 @@ void init_timer1(void)
     /////// ???????????!!! ????????? ? CONFIG3 SOSCSEL_SOSC = External clock (SCLKI) or Digital I/) mode
     ////// ??? ????? TIMER1 ????? ???????? ?? ??????? ?????? ?????? ?? ?????? ??????? ?? 23???!!!!
     _T1IF = 0;//clear flag interrupt
- //   _T1IE = 1;//enable interrupt    
+    _T1IE = 1;//enable interrupt    
     _T1IP = 4;//set prioritet 4
     PORT_T1 = 0;
     TRIS_T1 = 0xFFFF;//port timer1 as input
     ANSCbits.ANSC14 = 0;//analog/digital pin
-    PR1 = 10000;//period reset TMR1
+    PR1 = 0xFFFF;//period reset TMR1
     TMR1 = 0;//clear counter
-    T1CONbits.TCS = 1;//source external clock
+    T1CONbits.TCS = 0;//source external clock
     T1CONbits.TCKPS = 0b00;//prescaler 1:1
     T1CONbits.TGATE = 0;//Gated Time Accumulation Enable bit
     T1CONbits.TSYNC = 1;//Do not synchronize external clock input
@@ -42,8 +42,8 @@ void init_timer23(void)
 //    PR2 = 0;//
 //    PR3 = 0;
     T3CON = 0;//no use
-    PR2 = *pPeriod++;
-    PR3 = *pPeriod;
+ //   PR2 = *pPeriod++;
+//    PR3 = *pPeriod;
     TMR2 = 0;//clear counter T2
     TMR3 = 0;//clear counter T3
     T2CONbits.TCS = 1;//
