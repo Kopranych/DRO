@@ -18,7 +18,7 @@
 
               
 //);
- int CONFIG3 __attribute__((space(prog), address(0x2ABFA))) = 0xFFFF ;
+ int CONFIG3 __attribute__((space(prog), address(0x2ABFA))) = 0xFCFF ;
 //_CONFIG3(
 //    WPFP_WPFP255 &       // Write Protection Flash Page Segment Boundary (Highest Page (same as page 170))
 //    SOSCSEL_SOSC &       // Secondary Oscillator Power Mode Select (Secondary oscillator is in Default (high drive strength) Oscillator mode)
@@ -28,7 +28,7 @@
 //    WPCFG_WPCFGDIS &     // Write Protect Configuration Page Select (Last page (at the top of program memory) and Flash Configuration Words are not write-protected)
 //    WPEND_WPENDMEM       // Segment Write Protection End Page Select (Protected code segment upper boundary is at the last page of program memory; the lower boundary is the code page specified by WPFP)
 //);
- int CONFIG2 __attribute__((space(prog), address(0x2ABFC))) = 0xFAFF ;
+ int CONFIG2 __attribute__((space(prog), address(0x2ABFC))) = 0x9FF ;
 //_CONFIG2(
 //    POSCMOD_NONE &       // Primary Oscillator Select (Primary oscillator is disabled)
 //    IOL1WAY_ON &         // IOLOCK One-Way Set Enable (The IOLOCK bit (OSCCON<6>) can be set once, provided the unlock sequence has been completed. Once set, the Peripheral Pin Select registers cannot be written to a second time.)
@@ -52,17 +52,21 @@
 //    JTAGEN_OFF           // JTAG Port Enable (JTAG port is disabled)
 //);
 
-
+//#pragma config SOSCEL = IO
+ 
 void delay_ms(unsigned long int ms);
 
 int main(int argc, char** argv) 
 { 
+    CLKDIVbits.CPDIV = 0b00;
     init_timer1();
+    init_timer23();
     spi_init();
     init_port_led();
     unsigned int count = 0, flag = 0;
     start_timer1_23();
     led_on(10);
+    spi_txrx_AD5312(count);
     while(1)
     {
   /*     led_on(LED_SYNH); 
@@ -82,23 +86,23 @@ int main(int argc, char** argv)
            else flag = 0;
        }
        spi_txrx_AD5312(count);
-       
+ /*      
      if(flag_interrupt)
        {
            invers_LED_SYNH();
            flag_interrupt = 0;
        }
 */
-        if (_T1IF == 1)
+        if (_T3IF == 1)
         {
- //           _T1IF = 0;
-            if (count == 2)
+ //           _T13F = 0;
+            if (count == 1)
             {
  //               count = 0;
                 led_on(9);
  //               invers_LED_SYNH();
             }
-            else if(count == 4)
+            else if(count == 2)
             {
               led_off(9);
               count = 0;
@@ -106,7 +110,7 @@ int main(int argc, char** argv)
             }
               count++;
               TMR1 = 0;
-              _T1IF = 0;
+              _T3IF = 0;
         }
 
     }
