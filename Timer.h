@@ -24,5 +24,7 @@
 
 void init_timer1(void);//инициализация таймера 1
 void init_timer23(void);//инициализация таймеров 2/3
-void start_timer1_23(void);//start timer1 and timer2/3
+void init_timer45(void);
+void start_timer1_23_45(void);//start timer1 and timer2/3
 void mapping_pin_timer2RP0(void);//remap pin timer2 to RP0
+void mapping_pin_timer4RP0(void);

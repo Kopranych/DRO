@@ -12,6 +12,9 @@
 #include "PIC24F_periph_features.h"
 #include "led_dro.h"
 #include "InterruptVector.h"
+#include "calculation.h"
+
+#define IDEAL_VALUE 512
 
  int CONFIG4 __attribute__((space(prog), address(0x2ABF8))) = 0xFFFF ;
 //_CONFIG4(
@@ -28,7 +31,7 @@
 //    WPCFG_WPCFGDIS &     // Write Protect Configuration Page Select (Last page (at the top of program memory) and Flash Configuration Words are not write-protected)
 //    WPEND_WPENDMEM       // Segment Write Protection End Page Select (Protected code segment upper boundary is at the last page of program memory; the lower boundary is the code page specified by WPFP)
 //);
- int CONFIG2 __attribute__((space(prog), address(0x2ABFC))) = 0x9FF ;
+ int CONFIG2 __attribute__((space(prog), address(0x2ABFC))) = 0x9DF ;
 //_CONFIG2(
 //    POSCMOD_NONE &       // Primary Oscillator Select (Primary oscillator is disabled)
 //    IOL1WAY_ON &         // IOLOCK One-Way Set Enable (The IOLOCK bit (OSCCON<6>) can be set once, provided the unlock sequence has been completed. Once set, the Peripheral Pin Select registers cannot be written to a second time.)
@@ -39,7 +42,7 @@
 //    PLLDIV_DIV12 &       // 96 MHz PLL Prescaler Select (Oscillator input is divided by 12 (48 MHz input))
 //    IESO_ON              // Internal External Switchover (IESO mode (Two-Speed Start-up) is enabled)
 //);
- int CONFIG1 __attribute__((space(prog), address(0x2ABFE))) = 0x3DFF ;
+ int CONFIG1 __attribute__((space(prog), address(0x2ABFE))) = 0x3D7F ;
 //_CONFIG1(
 //    WDTPS_PS32768 &      // Watchdog Timer Postscaler (1:32,768)
 //    FWPSA_PR128 &        // WDT Prescaler (Prescaler ratio of 1:128)
@@ -54,22 +57,33 @@
 
 //#pragma config SOSCEL = IO
  
-void delay_ms(unsigned long int ms);
+
+unsigned int DAC_current = IDEAL_VALUE;
+unsigned long int freq_current;
 
 int main(int argc, char** argv) 
 { 
     CLKDIVbits.CPDIV = 0b00;// postscaler PLL
     init_timer1();
-    init_timer23();
+//    init_timer23();
+    init_timer45();
     spi_init();
     init_port_led();
     unsigned int count = 0, flag = 0;
-    start_timer1_23();
-    led_on(10);
-//    spi_txrx_AD5312(count);
+    start_timer1_23_45();
+    led_on(VD2);
+    spi_txrx_AD5312(DAC_current);//?????? ????????????????? ?????????? ?? ??? ??? ??????? ? 10???
     while(1)
     {
-  /*     led_on(LED_SYNH); 
+//        spi_txrx_AD5312(DAC_current);
+        if(flag_tmr1)//??????  ?????????
+        {
+            freq_current = value_freqH<<16|value_freqL;
+            DAC_current = calcul_freq(freq_current, DAC_current);
+            spi_txrx_AD5312(DAC_current);
+            flag_tmr1 = 0;
+        }
+/*       led_on(LED_SYNH); 
        delay_ms(1000);
        led_off(LED_SYNH);
        led_on(LED_LOAD);
@@ -86,21 +100,21 @@ int main(int argc, char** argv)
            else flag = 0;
        }
        spi_txrx_AD5312(count);
- /*      
+        
      if(flag_interrupt)
        {
            invers_LED_SYNH();
            flag_interrupt = 0;
        }
 
-        if (_T3IF == 1)
+ /*       if (_T1IF == 1)
         {
- //           _T13F = 0;
+ /*           _T13F = 0;
             if (count == 1)
             {
  //               count = 0;
-                led_on(9);
- //               invers_LED_SYNH();
+//                led_on(9);
+                invers_LED_SYNH();
             }
             else if(count == 2)
             {
@@ -108,12 +122,14 @@ int main(int argc, char** argv)
               count = 0;
  
             }
+           invers_LED_SYNH();
               count++;
               TMR1 = 0;
-              _T3IF = 0;
+              _T1IF = 0;
              
         }
- */       spi_txrx_AD5312(0);
+ *///       spi_txrx_AD5312(500);
+ //       led_on(10);
     }
     return (EXIT_SUCCESS);
 }

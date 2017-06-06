@@ -21,7 +21,9 @@ extern "C" {
 #define RA0 0
 #define LED_SYNH PORTAbits.RA9
 #define LED_LOAD PORTAbits.RA10
-
+#define VD1 9
+#define VD2 10
+    
 void init_port_led(void);
 void invers_LED_LOAD(void);
 void invers_LED_SYNH(void);
