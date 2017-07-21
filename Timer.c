@@ -86,7 +86,7 @@ void init_timer45(void)
     T4CONbits.TON = 0;
     T4CONbits.TCS = 1;//
     T4CONbits.TCKPS1 = 0;//prescaler 
-    T4CONbits.TCKPS0 = 1;//1:256
+    T4CONbits.TCKPS0 = 0;//1:256
     T4CONbits.TGATE = 0;
     T4CONbits.TSIDL = 0;
     T4CONbits.T45 = 1;   

@@ -3,9 +3,9 @@
 
 void init_port_led(void)
 {
+    ANSA = 0;//I/0 digital output
     TRIS_LED &= ~((1<<RA0)|(1<<9)|(1<<10));
     PORT_LED &= ~((1<<RA0)|(1<<9)|(1<<10)); 
-    ANSA = 0;//I/0 digital output
 }
 
 void led_off(unsigned int pin)

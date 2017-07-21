@@ -12,7 +12,7 @@
 
 
 
-int flag_tmr1 = 0, count_t = 0, flag_interrupt, coun_tmr2;
+int flag_tmr1 = 0, count_t = 0, flag_interrupt, coun_tmr2, count_timer = 0;
 unsigned long int value_freqL = 0, value_freqH = 0;
 
 
@@ -38,8 +38,7 @@ void __attribute__((interrupt, auto_psv)) _T1Interrupt(void)//прерывание по тайм
 //    TMR2 = 0;//сбросили 
 //   TMR3 = 0;//счетчики
 //    flag_interrupt = 1;//зажгли флаг для обработки значений счетчиков
-
-    
+    count_timer++;  
 }
 
 //void _ISRFAST _T3Interrupt(void)//прерывание по таймеру 1
