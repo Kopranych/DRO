@@ -10,38 +10,44 @@
 #include <p24fj256da210.h>
 #include "Timer.h"
 
+#define FIFO_SIZE 100
 
 
-int flag_tmr1 = 0, count_t = 0, flag_interrupt, coun_tmr2, count_timer = 0;
+int flag_tmr1 = 0, flag_tmr2 = 0, count_t = 0, flag_interrupt, coun_tmr2, count_timer = 0;
 unsigned long int value_freqL = 0, value_freqH = 0;
+unsigned int high_bitnes_tmr45_count = 0;
+unsigned int high_bitnes_tmr45 = 0;
 
 
 
 //void _ISRFAST _T1Interrupt(void)
 void __attribute__((interrupt, auto_psv)) _T1Interrupt(void)//прерывание по таймеру 1
 {
+    //сохранили значение счетчиков
+    _T1IF=0;//сбросили флаг прерывания  
     
-//    value_freqL = TMR2;//сохранили значение счетчиков
-//    value_freqH = TMR3;
-//    coun_tmr2++;
-    value_freqL = TMR4;
-    value_freqH = TMR5;
-    
- //   coun_tmr2 = 0;
-    TMR4 = 0;
-    TMR5 = 0;
     flag_tmr1 = 1;
     TMR1 = 0;
-//    invers_LED_SYNH();
-    _T1IF=0;//сбросили флаг прерывания
-//    timer3 = TMR3;
-//    TMR2 = 0;//сбросили 
-//   TMR3 = 0;//счетчики
-//    flag_interrupt = 1;//зажгли флаг для обработки значений счетчиков
-    count_timer++;  
+    value_freqL = TMR4;
+    value_freqH = TMR5;
+    TMR4 = 0;
+    TMR5 = 0;
+    count_timer++;
+//    if(count_timer < FIFO_SIZE){
+//        value_freqL = TMR4;
+//        value_freqH = TMR5;
+//        
+//    }else{
+//        value_freqL = TMR4;
+//        value_freqH = TMR5;
+//        TMR4 = 0;
+//        TMR5 = 0;
+//        count_timer = 0;  
+//    }
+      
 }
 
-//void _ISRFAST _T3Interrupt(void)//прерывание по таймеру 1
+//void _ISRFAST _T3Interrupt(void)//прерывание по таймеру 3
 void __attribute__((interrupt, auto_psv)) _T3Interrupt(void)
 {
     _T3IF=0;
@@ -49,24 +55,27 @@ void __attribute__((interrupt, auto_psv)) _T3Interrupt(void)
     flag_interrupt = 1;
 }
 
-//void _ISRFAST _T2Interrupt(void)//прерывание по таймеру 1
+//void _ISRFAST _T2Interrupt(void)//прерывание по таймеру 2
 void __attribute__((interrupt, auto_psv)) _T2Interrupt(void)
 {
-    coun_tmr2++;
+    value_freqL = TMR4;
+    value_freqH = TMR5;
+    high_bitnes_tmr45 = high_bitnes_tmr45_count;
+    //сбросили счетчики
+    high_bitnes_tmr45_count = 0;
+    TMR4 = 0;
+    TMR5 = 0;
     TMR2 = 0;
-    _T2IF=0;
-//    flag_interrupt = 1;
+    _T2IF = 0;
+    flag_tmr2 = 1;
 }
 
 void __attribute__((interrupt, auto_psv)) _T4Interrupt(void)
 {
-    value_freqL = TMR1;
-    value_freqH = coun_tmr2;
-    TMR1 = 0;
-    coun_tmr2 = 0;
     TMR4 = 0;
-    _T4IF=0;
-    flag_interrupt = 1;
+    TMR5 = 0;
+    _T4IF=0;//сбросили флаг прерывания
+    high_bitnes_tmr45_count++;
 }
 
 //void __attribute__((__interrupt__)) _T1Interrupt(void);//

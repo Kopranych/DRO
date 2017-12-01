@@ -3,11 +3,13 @@
 
 
 
-unsigned int calcul_freq(unsigned long int freq_meas, unsigned int DAC_value)
+unsigned int calcul_freq(unsigned long freq_meas, unsigned int DAC_value)
 {
     unsigned long Range_Freq = freq_max - freq_min;
-    float step = Range_Freq/pow(2, N), shift;       
-    unsigned long int difference, ideal = PERFECT_FREQ;
+    float step = Range_Freq/pow(2, N);
+    float shift;       
+    unsigned long difference;
+    unsigned long ideal = PERFECT_FREQ;
 
     if(freq_meas < ideal)
     {
@@ -36,3 +38,5 @@ unsigned int rounding(float n)// ?????????? ?? ?????? ????????
     if((n - y)>= 0.5) y++;
     return y;
 }
+
+

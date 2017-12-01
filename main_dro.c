@@ -7,16 +7,19 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+
 #include <p24fj256da210.h>
 #include <p24Fxxxx.h>
 #include "PIC24F_periph_features.h"
 #include "led_dro.h"
 #include "InterruptVector.h"
 #include "calculation.h"
+#include "fifo.h"
 
 #define IDEAL_VALUE 512
 #define MAX_VALUE 1023
 #define MIN_VALUE 0
+#define LIMIT_FREQ_MEAS 0x989680
 
  int CONFIG4 __attribute__((space(prog), address(0x2ABF8))) = 0xFFFF ;
 //_CONFIG4(
@@ -61,100 +64,195 @@
  
 
 unsigned int DAC_current = IDEAL_VALUE;
-unsigned long int freq_current;
-unsigned long int freq_max, freq_min;
+//float freq_current, freq_avarege = 0;
+unsigned long int freq_max; //4200001735L, 
+unsigned long int freq_min;//4199997914L;
+unsigned long freq_current;
+unsigned long freq_avarege[] = {1,1,1,1,1,1,1,1,1,1};
+unsigned long freq_test = 5;
+unsigned int count_meas = 0, flag = 0;//
+unsigned long int freqL = 0, freqH = 0;
+fifo_t buf_fifo;
+int is_full = 1, is_first = 1;
+
+
+/* 
+* вывод значени€ измеренного значени€ частоты на светодиоды
+* если измеренна€ больше эталонной горит VD1
+* если меньше горит VD2
+* если равны гор€т оба светодиода
+*/
+void display_freq_current(unsigned long freq);
+//инициализаци€ и первоначальное заполнение буфера фифо
+void first_filling_fifo(fifo_t *fifo);
+// при отладеке проверить значени€ буфера фифо
+void test_fifo(fifo_t fifo_test);
+//инициализаци€ переферии и настройка контроллера
+void init_controller(void);
+//измерение максимального и минимального значени€ частоты
+void measur_max_min_value_freq(void);
+
+void _delay_s(unsigned long s);
 
 int main(int argc, char** argv) 
 { 
-    unsigned int count = 0, flag = 0;//
-    CLKDIVbits.CPDIV = 0b00;// postscaler PLL
-    
-    init_timer1();
-//    init_timer23();
-    init_timer45();
-    spi_init();
-    init_port_led();
-    start_timer1_23_45();
-    led_on(VD2);
-    
+    //инициализаци€ переферии и настройка контроллера
+    init_controller();
+    start_timer1_23_45(); 
     //измерение максимального и минимального значени€ частоты
-    spi_txrx_AD5312(MAX_VALUE);
-    while(count_timer < 2);//ждем актуального значени€ частоты
-    freq_max = value_freqH<<16|value_freqL;
-    spi_txrx_AD5312(MIN_VALUE);
-    while(count_timer < 4);
-    freq_min = value_freqH<<16|value_freqL;
+    measur_max_min_value_freq();
     
-    spi_txrx_AD5312(DAC_current);//так работают коменты или нет?
+//    spi_txrx_AD5312(DAC_current);//
     flag_tmr1 = 0;
     
+    value_freq buf_value_freq[100];
+    
+    for(is_full = 0; is_full<100;is_full++)
+    {
+        buf_value_freq[is_full].high_byte = 0x17;
+        buf_value_freq[is_full].low_byte = 0x4876E800;
+    }
+    
+//    заполн€ем первыми значени€ми буфер фифо
+//    init_fifo(&buf_fifo);
+//    
+//    while(count_meas< MAX)
+//    {
+//        if(flag_tmr1)
+//        {
+//            if(is_first)
+//            {
+//                fifo_get(&buf_fifo);
+//                is_first = 0;
+//                flag_tmr1 = 0;
+//                clear_counter_all_timer();
+//                count_timer = 0;
+//            }
+//            else
+//            {
+//                is_full = fifo_put(&buf_fifo, value_freqH<<16|value_freqL);
+//                count_meas++;
+//                flag_tmr1 = 0;
+//            }
+//        }
+//    }
+//    freq_current = value_freqH<<16|value_freqL;
+//  //            summa_array(&buf_fifo);
+//    DAC_current = calcul_freq(freq_current, DAC_current);
+    spi_txrx_AD5312(DAC_current);
+    
+    
+    
+ //сделать задержку 10 сек дл€ стабилизации генератора после поправки цапом   
     while(1)
     {
- //       spi_txrx_AD5312(DAC_current);
-        if(flag_tmr1)//
-        {
-            freq_current = value_freqH<<16|value_freqL;
-            DAC_current = calcul_freq(freq_current, DAC_current);
-            spi_txrx_AD5312(DAC_current);
-            if(freq_current == PERFECT_FREQ)
-                led_on(VD1);
-            else led_off(VD1);
-            flag_tmr1 = 0;
-        }
- /*      led_on(LED_SYNH); 
-       delay_ms(1000);
-       led_off(LED_SYNH);
-       led_on(LED_LOAD);
-       delay_ms(1000);
-       led_off(LED_LOAD);
-       if(!flag)
-       {
-           if(count < 1023) count++;
-           else flag = 1;
-       } 
-       else
-       {
-           if(count > 0) count--;
-           else flag = 0;
-       }
-       spi_txrx_AD5312(count);
+        freqH = TMR5;
+        freqL = TMR4;
         
-     if(flag_interrupt)
-       {
-           invers_LED_SYNH();
-           flag_interrupt = 0;
-       }
-
- /*       if (_T1IF == 1)
-        {
- /*           _T13F = 0;
-            if (count == 1)
-            {
- //               count = 0;
-//                led_on(9);
-                invers_LED_SYNH();
-            }
-            else if(count == 2)
-            {
-              led_off(9);
-              count = 0;
- 
-            }
-           invers_LED_SYNH();
-              count++;
-              TMR1 = 0;
-              _T1IF = 0;
-             
+     if(flag_tmr1){
+//            freq_current -= fifo_get(&buf_fifo);//выкидываем первое значение в буфере  
+//            fifo_put(&buf_fifo, value_freqH<<16|value_freqL);//кладем новое значение в конец буфера  
+//            freq_current += value_freqH<<16|value_freqL;//
+//            flag_tmr1 = 0;  
+         
+            freq_current = value_freqH<<16|value_freqL;
+            display_freq_current(freq_current);
+            DAC_current = calcul_freq(freq_current, DAC_current);// вычисл€ем разность между эталоном и измеренным значением
+            spi_txrx_AD5312(DAC_current);//корректируем значение ÷јѕ на величину разности
+            _delay_s(5);
+            clear_counter_all_timer();
+            
         }
- *///       spi_txrx_AD5312(500);
- //       led_on(10);
     }
     return (EXIT_SUCCESS);
 }
 
-void delay_ms(unsigned long int ms)
-{
+void _delay_s(unsigned long s){
+    s = s*3200000;
     unsigned long int i;
-    for(i = 0; i < ms; i++);
- 
+    for(i = 0; i < s; i++);
+}
+
+
+void display_freq_current(unsigned long freq){
+      if(freq == (unsigned long)PERFECT_FREQ)
+            {
+                led_on(VD1);
+                led_on(VD2);
+            }
+            else 
+                if(freq > (unsigned long)PERFECT_FREQ)
+                {
+                    led_on(VD1);
+                    led_off(VD2);
+                }
+            else 
+                if(freq < (unsigned long)PERFECT_FREQ)
+                {
+                    led_on(VD2);
+                    led_off(VD1);
+                }
+}
+
+void first_filling_fifo(fifo_t *fifo){
+    
+    init_fifo(fifo);
+    
+    while(is_full)
+    {
+        if(flag_tmr1)
+        {
+            if(is_first)
+            {
+                fifo_get(fifo);
+                is_first = 0;
+                flag_tmr1 = 0;
+                clear_counter_all_timer();
+            }
+            else
+            {
+                is_full = fifo_put(fifo, value_freqH<<16|value_freqL);
+                count_meas++;
+                flag_tmr1 = 0;
+            }
+        }
+    }
+}
+
+void test_fifo(fifo_t fifo_test){
+    //Test fifo    
+    init_fifo(&fifo_test);
+    for(is_full = 0; is_full<10;is_full++)
+    {
+        if(is_full <4){
+            fifo_put(&fifo_test, is_full);
+        }
+        else if(is_full>=4&is_full< 7)
+        {
+            fifo_get(&fifo_test);
+        }
+        else if(is_full>=7)
+        {
+            fifo_put(&fifo_test, is_full);
+        }    
+    }
+}
+
+void init_controller(void){
+    CLKDIVbits.CPDIV = 0b00;// postscaler PLL
+
+    init_timer1();
+    init_timer23();
+    init_timer45();
+    spi_init();
+    init_port_led();
+}
+
+void measur_max_min_value_freq(void){
+    spi_txrx_AD5312(MIN_VALUE);
+    while(count_timer < 2);
+    freq_min = value_freqH<<16|value_freqL;
+    spi_txrx_AD5312(MAX_VALUE);
+    while(count_timer < 4);//ждем актуального значени€ частоты
+    freq_max = value_freqH<<16|value_freqL;
 }
