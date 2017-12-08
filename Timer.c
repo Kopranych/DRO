@@ -25,7 +25,7 @@ void init_timer1(void)
     T1CONbits.TSIDL = 0;//
     T1CONbits.TON = 0;//stop Timer1
     //настройка периода таймера и сброс счетчика
-    PR1 = 100;//period reset TMR1
+    PR1 = 10;//period reset TMR1
     TMR1 = 0;//clear counter
 }
 
@@ -74,7 +74,7 @@ void init_timer45(void)
     _T4IF = 0; 
     _T4IP = 4;
     _T5IF = 0;//clear flag interrupt
-    _T5IE = 0;//enable interrupt    
+    _T5IE = 1;//enable interrupt    
     _T5IP = 4;//set prioritet 4
     //настройка портов таймера
     PORTFbits.RF2 = 0;

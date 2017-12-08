@@ -24,12 +24,13 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 
-#define MAX 100
+#define MAX 10
 
 typedef struct{
     unsigned long high_byte;
     unsigned long low_byte;
 }double_long;
+
 
 typedef struct{
     double_long buf_data[MAX];
@@ -44,8 +45,8 @@ typedef struct{
 //инициализация буфера
 void init_fifo(fifo_t *fifo);
 //добавление данных в буфер 
-int fifo_put(fifo_t *fifo, unsigned long data);
+int fifo_put(fifo_t *fifo, unsigned long high_data, unsigned long low_data);
 //извлечение данных из буфера
-unsigned long fifo_get(fifo_t *fifo);
+double_long fifo_get(fifo_t *fifo);
 //получить количество данных в fifo
 int get_count_fifo(fifo_t *fifo);

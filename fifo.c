@@ -33,7 +33,7 @@ double_long fifo_get(fifo_t *fifo)
   if(fifo->tail == MAX) fifo->tail = 0; /* установить на начало */
   if(fifo->count == 0) {
     //printf("буфер пуст\n");
-    return NULL;
+      return;
   }
   fifo->tail++;
   fifo->count--;
