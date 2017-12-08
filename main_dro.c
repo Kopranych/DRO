@@ -108,7 +108,7 @@ typedef enum{
 Mode device;
 
 /* 
-* вывод значения измеренного значения частоты на светодиоды
+* вывод измеренного значения частоты на светодиоды
 * если измеренная больше эталонной горит VD1
 * если меньше горит VD2
 * если равны горят оба светодиода
@@ -150,7 +150,7 @@ int main(int argc, char** argv)
     //измерение максимального и минимального значения частоты
 //    measur_max_min_value_freq();
     double_long first_value = init_value_perfect_freq(0x17, 0x4876E800);
-    double_long second_value = init_value_perfect_freq(0x00, 0xF46B0400);
+    double_long second_value = init_value_perfect_freq(0x17, 0xF46B0400);
 //    perfect_freq = init_value_perfect_freq(0x00, 0x00);
 //    perfect_freq = subtraction(first_value, second_value);
 //    spi_txrx_AD5312(DAC_current);//
@@ -163,13 +163,14 @@ int main(int argc, char** argv)
     flag_tmr1 = 0;
     unsigned long i;
     for(i = 0; i < 1000000; i+=100000){
-        perfect_freq = init_value_perfect_freq(0x00 , 0x4876E800 + i);
+        perfect_freq = init_value_perfect_freq(0x17 , 0x4876E800 + i);
         perfect_freq = multiplication_x64(perfect_freq, 16383);
-        result = division_64x(perfect_freq, first_value);
-        fifo_put(&buf_fifo, result, result);
+//        result = division_64x(perfect_freq, first_value);
+        fifo_put(&buf_fifo, perfect_freq.high_byte, perfect_freq.low_byte);
     }
+    
+    DAC_current = calcul_freq(second_value, DAC_current, first_value);
     flag_tmr1 = 0;
-   
     while(count_meas < MAX)
     {
         if(flag_tmr1)
@@ -190,7 +191,7 @@ int main(int argc, char** argv)
                 flag_tmr1 = 0;
                 display_freq_current(freq_current, buf_ref_freq[reference_freq]);
                 DAC_current = calcul_freq(freq_current, DAC_current,\
-                        buf_ref_freq[reference_freq],  array_range_freq[reference_freq],count);// вычисляем разность между эталоном и измеренным значением
+                        buf_ref_freq[reference_freq]);// вычисляем разность между эталоном и измеренным значением
                 spi_txrx_AD5312(DAC_current);//корректируем значение ЦАП на величину разности
                 reference_freq++;
             }
@@ -218,7 +219,7 @@ int main(int argc, char** argv)
                 flag_tmr1 = 0;  
  //               display_freq_current(freq_current, perfect_freq);
                 DAC_current = calcul_freq(freq_current, DAC_current,
-                        perfect_freq,  perfect_range_freq,count--);// вычисляем разность между эталоном и измеренным значением
+                        perfect_freq);// вычисляем разность между эталоном и измеренным значением
                 spi_txrx_AD5312(DAC_current);//корректируем значение ЦАП на величину разности 
             }
     }  
