@@ -16,6 +16,7 @@
 #define PREG SYSCLK/2*t1/256
 #define DELAY 2
 #define MEASURTI 0xF000//time measurment
+#define PERIOD_CORRECTION 40
 
 
 

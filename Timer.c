@@ -1,6 +1,8 @@
 //Function timer
 
 
+#
+
 #include "Timer.h"
 
 
@@ -25,7 +27,7 @@ void init_timer1(void)
     T1CONbits.TSIDL = 0;//
     T1CONbits.TON = 0;//stop Timer1
     //настройка периода таймера и сброс счетчика
-    PR1 = 10;//period reset TMR1
+    PR1 = PERIOD_CORRECTION;//period reset TMR1
     TMR1 = 0;//clear counter
 }
 
@@ -127,7 +129,9 @@ void mapping_pin_timer4RP0(void)
 {
     __builtin_write_OSCCONL(OSCCON & 0xbf);//Unlock Registers use C30 built-in macro
     RPINR4bits.T4CKR = 0x1E;//Assign T4 To Pin RP30
-    RPINR3bits.T2CKR = 0x00;//Assign T2 To Pin RP0
+//    RPINR3bits.T2CKR = 0x00;//Assign T2 To Pin RP0
+    RPINR18bits.U1RXR = 0x00;//Assign UART1RX To Pin RP0
+    RPOR3bits.RP6R = 3;//Assign UART1TX To Pin RP6
     
     RPOR2bits.RP5R = 7;//assign output MOSI
     RPOR5bits.RP10R = 8;//assign output SCK

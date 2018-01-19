@@ -11,11 +11,11 @@
 #include "Timer.h"
 
 
-#define FIFO_SIZE 5
+#define FIFO_SIZE 250
 
 
 int flag_tmr1 = 0, flag_tmr2 = 0, count_t = 0, flag_interrupt,\
-        coun_tmr2, count_timer = 0;
+        coun_tmr2, count_timer = 0, is_first = 1;
 unsigned long int value_freqL = 0, value_freqH = 0;
 unsigned int high_bitnes_tmr45_count = 0;
 unsigned int high_bitnes_tmr45 = 0;
@@ -25,7 +25,6 @@ unsigned int high_bitnes_tmr45 = 0;
 //void _ISRFAST _T1Interrupt(void)
 void __attribute__((interrupt, auto_psv)) _T1Interrupt(void)//прерывание по таймеру 1
 {
-    //сохранили значение счетчиков
     _T1IF=0;//сбросили флаг прерывания  
     
     flag_tmr1 = 1;
@@ -34,22 +33,32 @@ void __attribute__((interrupt, auto_psv)) _T1Interrupt(void)//прерывание по тайм
 //    value_freqH = TMR5;
 //    TMR4 = 0;
 //    TMR5 = 0;
-    count_timer++;
-    if(count_timer < FIFO_SIZE){
-        value_freqL = TMR4;
-        value_freqH = TMR5;
-        high_bitnes_tmr45 = high_bitnes_tmr45_count;
-        
-    }else{
-        value_freqL = TMR4;
-        value_freqH = TMR5;
-        high_bitnes_tmr45 = high_bitnes_tmr45_count;
-        TMR4 = 0;
-        TMR5 = 0;
-        high_bitnes_tmr45_count = 0;
+    if(is_first)
+    {
+        is_first = 0;
+        flag_tmr1 = 0;
+        clear_counter_all_timer();
         count_timer = 0;
     }
-      
+    else{
+        count_timer++;
+        if(count_timer < FIFO_SIZE){
+                //сохранили значение счетчиков
+            value_freqL = TMR4;
+            value_freqH = TMR5;
+            high_bitnes_tmr45 = high_bitnes_tmr45_count;
+            
+        }else{
+                //сохранили значение счетчиков
+            value_freqL = TMR4;
+            value_freqH = TMR5;
+            high_bitnes_tmr45 = high_bitnes_tmr45_count;
+            TMR4 = 0;
+            TMR5 = 0;
+            high_bitnes_tmr45_count = 0;
+            count_timer = 0;
+        }
+    }          
 }
 
 //void _ISRFAST _T3Interrupt(void)//прерывание по таймеру 3
@@ -77,8 +86,14 @@ void __attribute__((interrupt, auto_psv)) _T2Interrupt(void)
 
 void __attribute__((interrupt, auto_psv)) _T4Interrupt(void)
 {
+//    high_bitnes_tmr45_count++;
+//    _T4IF=0;//сбросили флаг прерывания   
+}
+
+void __attribute__((interrupt, auto_psv)) _T5Interrupt(void)
+{
     high_bitnes_tmr45_count++;
-    _T4IF=0;//сбросили флаг прерывания   
+    _T5IF=0;//сбросили флаг прерывания   
 }
 //void __attribute__((__interrupt__)) _T1Interrupt(void);//
 

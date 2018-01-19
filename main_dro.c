@@ -14,12 +14,16 @@
 //#include "led_dro.h"
 #include "InterruptVector.h"
 #include "calculation.h"
+#include "uart.h"
 
-
-#define IDEAL_VALUE 512
-#define MAX_VALUE 1023
-#define MIN_VALUE 0
+#define FREQ_OCV 10000000//частота внешнего генератора в герцах
+#define RANGE_FREQ_OCV 10//диапазон перестройки частоты генератора в герцах
+#define IDEAL_VALUE 500//значенияе на ЦАП
+#define MAX_VALUE 1023//максимальное значенияе на ЦАП
+#define MIN_VALUE 0//минимальное значенияе на ЦАП
 #define LIMIT_FREQ_MEAS 0x989680
+#define PERFECT_FREQ FREQ_OCV*PERIOD_CORRECTION
+
 
  int CONFIG4 __attribute__((space(prog), address(0x2ABF8))) = 0xFFFF ;
 //_CONFIG4(
@@ -36,7 +40,7 @@
 //    WPCFG_WPCFGDIS &     // Write Protect Configuration Page Select (Last page (at the top of program memory) and Flash Configuration Words are not write-protected)
 //    WPEND_WPENDMEM       // Segment Write Protection End Page Select (Protected code segment upper boundary is at the last page of program memory; the lower boundary is the code page specified by WPFP)
 //);
- int CONFIG2 __attribute__((space(prog), address(0x2ABFC))) = 0x1BDE ;//внешний такт
+ int CONFIG2 __attribute__((space(prog), address(0x2ABFC))) = 0x1BDE;//внешний// 0x9DF ;//внутренний с pll//0xFF;//0x12DE;//0x1BDE ;//внешний такт
 //_CONFIG2(
 //    POSCMOD_HS &         // Primary Oscillator Select (HS Oscillator mode is selected)
 //    IOL1WAY_ON &         // IOLOCK One-Way Set Enable (The IOLOCK bit (OSCCON<6>) can be set once, provided the unlock sequence has been completed. Once set, the Peripheral Pin Select registers cannot be written to a second time.)
@@ -47,6 +51,7 @@
 //    PLLDIV_DIV2 &        // 96 MHz PLL Prescaler Select (Oscillator input is divided by 2 (8 MHz input))
 //    IESO_OFF             // Internal External Switchover (IESO mode (Two-Speed Start-up) is disabled)
 //);
+
  int CONFIG1 __attribute__((space(prog), address(0x2ABFE))) = 0x3D7F ;
 //_CONFIG1(
 //    WDTPS_PS32768 &      // Watchdog Timer Postscaler (1:32,768)
@@ -64,6 +69,7 @@
  
 
 unsigned int DAC_current = IDEAL_VALUE;
+double_long difference;
 //float freq_current, freq_avarege = 0;
 unsigned long int freq_max; //4200001735L, 
 unsigned long int freq_min;//4199997914L;
@@ -73,19 +79,25 @@ unsigned long freq_test = 5;
 unsigned int count_meas = 0, flag = 0;//
 unsigned long int freqL = 0, freqH = 0;
 fifo_t buf_fifo;
-int is_full = 1, is_first = 1;
+int is_full = 1;
 double_long point;
 double_long freq_current;
 double_long perfect_freq;
+double_long temp_value_tmr45;
 unsigned long perfect_range_freq = 500;
 int count = 20;
         
 //массив опорных значений частоты
-unsigned long buf_ref_freq_high[MAX] = {0,0,0,0,0};
-unsigned long buf_ref_freq_low[MAX] = {0x5F5E100,0xBEBC200,0x11E1A300,0x17D78400,0x1DCD6500};
 double_long buf_ref_freq[MAX];
 //массив значений диапазона отклонений частоты
-unsigned long array_range_freq[MAX] = {100,200,300,400,500};
+unsigned long range_freq_perf = 100000;
+unsigned long array_range_freq[MAX];
+
+char strInit[] = "Initialization successfull";
+char strModeS[] = "Mode synchronization";
+char strMode[] = "Mode capture";
+char str[];
+char strdif[];
 
 //опорные значения частоты для сравнения с измеренными значениями
 typedef enum{  
@@ -96,7 +108,7 @@ typedef enum{
     ref5
 }perfect;
 
-perfect reference_freq;
+int reference_freq = 0;
 
 // режимы работы устройства: режим вхождение в синхронизм; 
 //режим синхронизма
@@ -140,64 +152,67 @@ double_long init_value_perfect_freq(unsigned long high_byte, unsigned long low_b
 
 int main(int argc, char** argv) 
 { 
-    unsigned int first = 5;
-    unsigned int second = 6;
-    unsigned int result = first - second;
+    freq_current = init_value_perfect_freq(0x1, 0xFFFFFFFF);
+    temp_value_tmr45 = init_value_perfect_freq(0x00, 0x01);
+    freq_current = addition_x64(freq_current, temp_value_tmr45);
+    perfect_freq = init_value_perfect_freq(0x00, PERFECT_FREQ);
+    unsigned long int i;
+    for(i = 0; i< MAX; i++){
+        buf_ref_freq[i] = multiplication_x64(perfect_freq, i+1);
+        array_range_freq[i] = (RANGE_FREQ_OCV*PERIOD_CORRECTION)*(i+1);
+    }
+//    perfect_freq = init_value_perfect_freq(0x17 , 0x4876E800);
+//    i = division_64x(perfect_freq,buf_ref_freq[0]);
+//    double_long first_value = init_value_perfect_freq(0x2E28, 0x27B8EC00);
+//    double_long second_value = init_value_perfect_freq(0x17, 0x4876E800);
+//    division_64x(first_value, second_value);
     //инициализация переферии и настройка контроллера
     init_controller();
     start_timer1_23_45();
-    init_buf_ref(buf_ref_freq, buf_ref_freq_high, buf_ref_freq_low);
+//init_buf_ref(buf_ref_freq, buf_ref_freq_high, buf_ref_freq_low);
     //измерение максимального и минимального значения частоты
 //    measur_max_min_value_freq();
-    double_long first_value = init_value_perfect_freq(0x17, 0x4876E800);
-    double_long second_value = init_value_perfect_freq(0x17, 0xF46B0400);
-//    perfect_freq = init_value_perfect_freq(0x00, 0x00);
-//    perfect_freq = subtraction(first_value, second_value);
-//    spi_txrx_AD5312(DAC_current);//
     
+    UART1PutStr(strInit);
+       
+    spi_txrx_AD5312(DAC_current);//
     
-//    заполняем первыми значениями буфер фифо
     init_fifo(&buf_fifo);
     
-    result = division_64x(first_value, second_value);
     flag_tmr1 = 0;
-    unsigned long i;
-    for(i = 0; i < 1000000; i+=100000){
-        perfect_freq = init_value_perfect_freq(0x17 , 0x4876E800 + i);
-        perfect_freq = multiplication_x64(perfect_freq, 16383);
-//        result = division_64x(perfect_freq, first_value);
-        fifo_put(&buf_fifo, perfect_freq.high_byte, perfect_freq.low_byte);
-    }
-    
-    DAC_current = calcul_freq(second_value, DAC_current, first_value);
-    flag_tmr1 = 0;
+    UART1PutStr(strModeS);
     while(count_meas < MAX)
     {
         if(flag_tmr1)
         {
-            if(is_first)
+            if(count_meas == 4)
             {
-                is_first = 0;
                 flag_tmr1 = 0;
-                clear_counter_all_timer();
-                count_timer = 0;
             }
-            else
-            {
-                is_full = fifo_put(&buf_fifo, high_bitnes_tmr45, value_freqH<<16|value_freqL);
-                freq_current.high_byte = high_bitnes_tmr45;
-                freq_current.low_byte = value_freqH<<16|value_freqL;
-                count_meas++;
-                flag_tmr1 = 0;
-                display_freq_current(freq_current, buf_ref_freq[reference_freq]);
-                DAC_current = calcul_freq(freq_current, DAC_current,\
-                        buf_ref_freq[reference_freq]);// вычисляем разность между эталоном и измеренным значением
-                spi_txrx_AD5312(DAC_current);//корректируем значение ЦАП на величину разности
-                reference_freq++;
-            }
+            //    заполняем первыми значениями буфер фифо
+            is_full = fifo_put(&buf_fifo, high_bitnes_tmr45, value_freqH<<16|value_freqL);
+            freq_current.high_byte = high_bitnes_tmr45;
+            freq_current.low_byte = value_freqH<<16|value_freqL;
+            
+            flag_tmr1 = 0;
+//            double_long tempRefFreq = multiplication_x64(perfect_freq, count_meas+1);
+            display_freq_current(freq_current, buf_ref_freq[count_meas]);
+//           unsigned long tempRangFreq = 1000*(count_meas+1);
+//            difference = subtraction(tempRefFreq, freq_current);
+            DAC_current = calcul_freq(freq_current, DAC_current,\
+            buf_ref_freq[count_meas], array_range_freq[count_meas]);// вычисляем разность между эталоном и измеренным значением
+            spi_txrx_AD5312(DAC_current);//корректируем значение ЦАП на величину разности
+            itoa(str ,DAC_current,10);
+            
+ //           itoa(strdif ,difference.low_byte,10);
+//            strcat(str, " : ");
+//            strcat(str, strdif);
+            UART1PutStr(str);
+      
+            count_meas++;
         }
     }
-//    flag_tmr1 = 0;
+    flag_tmr1 = 0;
 //    freq_current = value_freqH<<16|value_freqL;
 //  //            summa_array(&buf_fifo);
 //    DAC_current = calcul_freq(freq_current, DAC_current);
@@ -205,23 +220,39 @@ int main(int argc, char** argv)
     
     
     
- //сделать задержку 10 сек для стабилизации генератора после поправки цапом   
+   
+    UART1PutStr(strMode);
+    perfect_freq = init_value_perfect_freq(0x17, 0x4876E800);
     while(1)
     {   
         if(flag_tmr1){
-            
-                point = fifo_get(&buf_fifo);
-                freq_current.high_byte -= point.high_byte;//выкидываем первое значение в буфере  
-                freq_current.low_byte -= point.low_byte;
-                fifo_put(&buf_fifo, high_bitnes_tmr45, value_freqH<<16|value_freqL);//кладем новое значение в конец буфера  
-                freq_current.high_byte += high_bitnes_tmr45;
-                freq_current.low_byte += value_freqH<<16|value_freqL;//
-                flag_tmr1 = 0;  
- //               display_freq_current(freq_current, perfect_freq);
-                DAC_current = calcul_freq(freq_current, DAC_current,
-                        perfect_freq);// вычисляем разность между эталоном и измеренным значением
-                spi_txrx_AD5312(DAC_current);//корректируем значение ЦАП на величину разности 
-            }
+            temp_value_tmr45.high_byte = high_bitnes_tmr45;
+            temp_value_tmr45.low_byte = value_freqH<<16|value_freqL;
+            point = fifo_get(&buf_fifo);//выкидываем первое значение в буфере                                  
+            freq_current = addition_x64(freq_current, temp_value_tmr45);
+            freq_current = subtraction(freq_current, point);
+            fifo_put(&buf_fifo, high_bitnes_tmr45, value_freqH<<16|value_freqL);//кладем новое значение в конец буфера
+                
+            flag_tmr1 = 0;  
+            display_freq_current(freq_current, perfect_freq);
+            DAC_current = calcul_freq(freq_current, DAC_current,\
+                        perfect_freq, range_freq_perf);// вычисляем разность между эталоном и измеренным значением
+//               if((freq_current.high_byte <= perfect_freq.high_byte)\
+//            &(freq_current.low_byte < perfect_freq.low_byte))
+//                   difference = subtraction(perfect_freq, freq_current);
+//               else
+//                   difference = subtraction(freq_current, perfect_freq);
+//                if(DAC_current > MAX_VALUE)
+//                    DAC_current = MAX_VALUE;
+//                else if(DAC_current < MIN_VALUE)
+//                    DAC_current = MIN_VALUE;
+            spi_txrx_AD5312(DAC_current);//корректируем значение ЦАП на величину разности 
+                
+//                itoa(str ,(unsigned int)difference.low_byte,10);
+//                UART1PutStr(str);
+            itoa(str ,DAC_current,10);
+            UART1PutStr(str);
+        }
     }  
     return (EXIT_SUCCESS);
 }
@@ -307,13 +338,18 @@ void display_freq_current(double_long freq, double_long buf_ref_freq){
 
 
 void init_controller(void){
-    CLKDIVbits.CPDIV = 0b00;// postscaler PLL
-
+    CLKDIVbits.CPDIV = 0x00;// postscaler PLL
+    CLKDIVbits.PLLEN = 0x01;
+    OSCCONbits.COSC = 0b001;
+    OSCCONbits.OSWEN = 0;
+    OSCCONbits.CLKLOCK = 0;
+    OSCCONbits.SOSCEN = 0;
     init_timer1();
     init_timer23();
     init_timer45();
     spi_init();
     init_port_led();
+    UART1Init();
 }
 
 

@@ -13,7 +13,6 @@
 #define Fmax //
 #define Fmin //
 #define N 10// 
-#define PERFECT_FREQ 1000000000L
 #define VALUE_LIMIT 1023
 #define OVERFLOW 0xFFFFFFFF
 
@@ -28,7 +27,7 @@ extern unsigned long int freq_max, freq_min;
  * возвращает  unsigned int значение ЦАП для корректировки частоты
  */
 unsigned int calcul_freq(double_long freq_meas, unsigned int DAC_value,\
-        double_long perfect_freq);
+        double_long perfect_freq,  unsigned long Range_Freq);
 //unsigned long summa_array(unsigned long buffer[]);
 
 /*
@@ -66,3 +65,14 @@ double_long subtraction(double_long first_value, double_long second_value);
  * возвращает unsigned int значение с округлением после запятой
  */
 unsigned int division_64x(double_long first_value, double_long second_value);
+
+/*
+ * функция сложения двух чисел 64-разрядных 
+ * принимает double_long first_value и double_long second_value
+ * выполняет first_value+second_value
+ * возвращает double_long 
+ */
+double_long addition_x64(double_long first_value, double_long second_value);
+
+unsigned int calcul_freq_validate(double_long freq_meas, unsigned int DAC_value,\
+        double_long perfect_freq);

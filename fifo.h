@@ -23,8 +23,10 @@ extern "C" {
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "Timer.h"
 
-#define MAX 10
+#define TIME_MEAS_FREQ 10000// время накопления данных измерений частоты в секундах
+#define MAX TIME_MEAS_FREQ/PERIOD_CORRECTION
 
 typedef struct{
     unsigned long high_byte;
