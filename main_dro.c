@@ -18,7 +18,7 @@
 
 #define FREQ_OCV 10000000//частота внешнего генератора в герцах
 #define RANGE_FREQ_OCV 10//диапазон перестройки частоты генератора в герцах
-#define IDEAL_VALUE 500//значенияе на ЦАП
+#define IDEAL_VALUE 465//значенияе на ЦАП
 #define MAX_VALUE 1023//максимальное значенияе на ЦАП
 #define MIN_VALUE 0//минимальное значенияе на ЦАП
 #define LIMIT_FREQ_MEAS 0x989680
@@ -40,7 +40,7 @@
 //    WPCFG_WPCFGDIS &     // Write Protect Configuration Page Select (Last page (at the top of program memory) and Flash Configuration Words are not write-protected)
 //    WPEND_WPENDMEM       // Segment Write Protection End Page Select (Protected code segment upper boundary is at the last page of program memory; the lower boundary is the code page specified by WPFP)
 //);
- int CONFIG2 __attribute__((space(prog), address(0x2ABFC))) = 0x1BDE;//внешний// 0x9DF ;//внутренний с pll//0xFF;//0x12DE;//0x1BDE ;//внешний такт
+ int CONFIG2 __attribute__((space(prog), address(0x2ABFC))) = 0x1BDE;//внешний// 0x9DF - внутренний с pll//0xFF;//0x12DE;//0x1BDE - внешний такт
 //_CONFIG2(
 //    POSCMOD_HS &         // Primary Oscillator Select (HS Oscillator mode is selected)
 //    IOL1WAY_ON &         // IOLOCK One-Way Set Enable (The IOLOCK bit (OSCCON<6>) can be set once, provided the unlock sequence has been completed. Once set, the Peripheral Pin Select registers cannot be written to a second time.)
@@ -89,6 +89,7 @@ int count = 20;
         
 //массив опорных значений частоты
 double_long buf_ref_freq[MAX];
+double_long buf_ref_freq_test[MAX];
 //массив значений диапазона отклонений частоты
 unsigned long range_freq_perf = 100000;
 unsigned long array_range_freq[MAX];
@@ -152,15 +153,22 @@ double_long init_value_perfect_freq(unsigned long high_byte, unsigned long low_b
 
 int main(int argc, char** argv) 
 { 
-    freq_current = init_value_perfect_freq(0x1, 0xFFFFFFFF);
-    temp_value_tmr45 = init_value_perfect_freq(0x00, 0x01);
-    freq_current = addition_x64(freq_current, temp_value_tmr45);
-    perfect_freq = init_value_perfect_freq(0x00, PERFECT_FREQ);
     unsigned long int i;
+    //test
+///////////////////////////////////////////////////////////////////////
+    perfect_freq = init_value_perfect_freq(0x00, 0x17D7840A);
+    for(i = 0; i< MAX; i++){
+        buf_ref_freq_test[i] = multiplication_x64(perfect_freq, i+1);
+    }
+    
+////////////////////////////////////////////////////////////////////////    
+    perfect_freq = init_value_perfect_freq(0x00, PERFECT_FREQ);
+   
     for(i = 0; i< MAX; i++){
         buf_ref_freq[i] = multiplication_x64(perfect_freq, i+1);
         array_range_freq[i] = (RANGE_FREQ_OCV*PERIOD_CORRECTION)*(i+1);
     }
+    
 //    perfect_freq = init_value_perfect_freq(0x17 , 0x4876E800);
 //    i = division_64x(perfect_freq,buf_ref_freq[0]);
 //    double_long first_value = init_value_perfect_freq(0x2E28, 0x27B8EC00);
@@ -229,7 +237,7 @@ int main(int argc, char** argv)
             temp_value_tmr45.high_byte = high_bitnes_tmr45;
             temp_value_tmr45.low_byte = value_freqH<<16|value_freqL;
             point = fifo_get(&buf_fifo);//выкидываем первое значение в буфере                                  
-            freq_current = addition_x64(freq_current, temp_value_tmr45);
+            freq_current = addition_x64(freq_current, buf_ref_freq_test[i]);
             freq_current = subtraction(freq_current, point);
             fifo_put(&buf_fifo, high_bitnes_tmr45, value_freqH<<16|value_freqL);//кладем новое значение в конец буфера
                 
